@@ -1,0 +1,15 @@
+name: amilak_alayna
+description: Amilak Alayna
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <5.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: ^6.2.0
+
+flutter:
+  uses-material-design: true
