@@ -19,8 +19,13 @@ jobs:
           channel: stable
       - name: Generate Android project
         run: flutter create --platforms=android --project-name amilak_alayna --org com.amilak .
+      - name: Patch manifest
+        run: |
+          f=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/><queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="tel"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries><application|' $f
+          sed -i 's|android:label="[^"]*"|android:label="عاملك علينا"|' $f
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter build apk --release -t lib/app.dart
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
