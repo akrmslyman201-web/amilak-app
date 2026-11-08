@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'admin.dart';
+import 'customer.dart';
 import 'common.dart';
 import 'main.dart' show Home, kBg, kGreen;
 import 'signup.dart';
@@ -179,8 +180,8 @@ class _RoleRouterState extends State<RoleRouter> {
         final name = (s.data!['full_name'] ?? '').toString();
         if (role == 'worker') return WorkerHome(name: name);
         if (role == 'admin') return const AdminHome();
-        return const Home();
-      },
-    );
+            return CustomerHome(name: name);
+  },
+);
   }
 }
