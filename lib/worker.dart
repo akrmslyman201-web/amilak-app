@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'common.dart';
+import 'worker_card.dart';
 import 'main.dart' show kBg, kCard;
 
 class WorkerHome extends StatefulWidget {
@@ -157,13 +158,14 @@ class _WorkerHomeState extends State<WorkerHome> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'يظهر حسابك للعملاء بعد توثيقه وتأكيد اشتراكك. أول شهرين مجاناً.',
-            style: TextStyle(color: Colors.white60),
-          ),
-        ],
+              if (st == 'approved') WorkerExtras(w: w),
+      const SizedBox(height: 16),
+      const Text(
+        'يظهر حسابك للعملاء بعد توثيقه وتأكيد اشتراكك. أول شهرين مجاناً.',
+        style: TextStyle(color: Colors.white54),
       ),
-    );
+    ],
+  ),
+);
   }
 }
