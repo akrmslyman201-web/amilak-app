@@ -24,6 +24,15 @@ jobs:
           f=android/app/src/main/AndroidManifest.xml
           sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/><queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="tel"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries><application|' $f
           sed -i 's|android:label="[^"]*"|android:label="عاملك علينا"|' $f
+      - name: Use permanent signing key
+        run: |
+          if [ -f keystore/release.keystore ]; then
+            mkdir -p ~/.android
+            cp keystore/release.keystore ~/.android/debug.keystore
+            echo "Using permanent key"
+          else
+            echo "No keystore found, using a temporary key"
+          fi
       - run: flutter pub get
       - name: Generate app icon
         run: dart run flutter_launcher_icons
