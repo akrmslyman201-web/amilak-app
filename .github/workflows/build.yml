@@ -25,6 +25,8 @@ jobs:
           sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/><queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="tel"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries><application|' $f
           sed -i 's|android:label="[^"]*"|android:label="عاملك علينا"|' $f
       - run: flutter pub get
+      - name: Generate app icon
+        run: dart run flutter_launcher_icons
       - run: flutter build apk --release -t lib/app.dart
       - uses: actions/upload-artifact@v4
         with:
