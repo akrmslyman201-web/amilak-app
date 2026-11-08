@@ -2,23 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'common.dart';
 import 'main.dart' show kBg, kBorder, kCard, kGreen;
+import 'worker_sub.dart' show fmt;
 
-class AdminHome extends StatefulWidget {
-  const AdminHome({super.key});
+class SubsTab extends StatefulWidget {
+  const SubsTab({super.key});
 
   @override
-  State<AdminHome> createState() => _AdminHomeState();
+  State<SubsTab> createState() => _SubsTabState();
 }
 
-class _AdminHomeState extends State<AdminHome> {
+class _SubsTabState extends State<SubsTab> {
   String status = 'pending';
   bool loading = true;
   List<Map<String, dynamic>> items = [];
+  Map<String, Map<String, dynamic>> people = {};
 
   static const labels = {
-    'pending': 'قيد المراجعة',
-    'approved': 'موثّقون',
-    'rejected': 'مرفوضون',
+    'pending': 'بانتظار التأكيد',
+    'confirmed': 'مؤكدة',
+    'rejected': 'مرفوضة',
   };
 
   @override
@@ -31,70 +33,64 @@ class _AdminHomeState extends State<AdminHome> {
     setState(() => loading = true);
     try {
       final r = await sb
-          .from('workers')
-          .select('id, city, photo_url, id_doc_url, id_doc_type, '
-              'profiles(full_name, phone), professions(name), states(name)')
-          .eq('verification_status', status)
-          .not('id_doc_url', 'is', null)
+          .from('subscriptions')
+          .select()
+          .eq('status', status)
+          .eq('kind', 'paid')
           .order('created_at', ascending: false);
       items = List<Map<String, dynamic>>.from(r);
-    } catch (_) {
+      final ids = items.map((s) => s['worker_id'] as String).toSet().toList();
+      people = {};
+      if (ids.isNotEmpty) {
+        final p = await sb
+            .from('profiles')
+            .select('id, full_name, phone')
+            .inFilter('id', ids);
+        for (final x in p) {
+          people[x['id'] as String] = Map<String, dynamic>.from(x);
+        }
+      }
+    } catch (e) {
       items = [];
-      if (mounted) msg(context, 'تعذر التحميل، تحقق من الإنترنت');
+      if (mounted) msg(context, 'تعذر التحميل: $e');
     }
     if (mounted) setState(() => loading = false);
   }
 
-  Future<void> showDoc(Map<String, dynamic> w) async {
+  Future<void> confirm(Map<String, dynamic> s) async {
+    final wid = s['worker_id'] as String;
+    String d(DateTime t) => t.toIso8601String().substring(0, 10);
     try {
-      final url = await sb.storage
-          .from('id-docs')
-          .createSignedUrl(w['id_doc_url'] as String, 300);
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (_) => Dialog(
-          child: InteractiveViewer(
-            child: Image.network(url, fit: BoxFit.contain),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (mounted) msg(context, 'تعذر فتح المستند');
-    }
-  }
-
-  Future<void> approve(Map<String, dynamic> w) async {
-    final id = w['id'] as String;
-    try {
-      await sb.from('workers').update({
-        'verified': true,
-        'verification_status': 'approved',
-        'reject_reason': null,
-      }).eq('id', id);
-      final has =
-          await sb.from('subscriptions').select('id').eq('worker_id', id).limit(1);
-      if ((has as List).isEmpty) {
-        final now = DateTime.now();
-        final end = now.add(const Duration(days: 60));
-        String d(DateTime t) => t.toIso8601String().substring(0, 10);
-        await sb.from('subscriptions').insert({
-          'worker_id': id,
-          'amount': 0,
-          'status': 'confirmed',
-          'kind': 'free',
-          'starts_at': d(now),
-          'ends_at': d(end),
-        });
+      final today = DateTime.now();
+      final act = await sb
+          .from('subscriptions')
+          .select('ends_at')
+          .eq('worker_id', wid)
+          .eq('status', 'confirmed')
+          .gte('ends_at', d(today))
+          .order('ends_at', ascending: false)
+          .limit(1);
+      final list = act as List;
+      var start = DateTime(today.year, today.month, today.day);
+      if (list.isNotEmpty) {
+        start = DateTime.parse(list.first['ends_at'] as String)
+            .add(const Duration(days: 1));
       }
-      if (mounted) msg(context, 'تم توثيق الحساب وفتحه شهرين مجاناً');
+      final end = start.add(const Duration(days: 30));
+      await sb.from('subscriptions').update({
+        'status': 'confirmed',
+        'starts_at': d(start),
+        'ends_at': d(end),
+        'reject_reason': null,
+      }).eq('id', s['id'] as String);
+      if (mounted) msg(context, 'تم تأكيد الاشتراك حتى ${d(end)}');
       await load();
     } catch (_) {
       if (mounted) msg(context, 'تعذر الحفظ، حاول مرة أخرى');
     }
   }
 
-  Future<void> reject(Map<String, dynamic> w) async {
+  Future<void> reject(Map<String, dynamic> s) async {
     final c = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
@@ -102,7 +98,8 @@ class _AdminHomeState extends State<AdminHome> {
         title: const Text('سبب الرفض'),
         content: TextField(
           controller: c,
-          decoration: const InputDecoration(hintText: 'مثال: الصورة غير واضحة'),
+          decoration:
+              const InputDecoration(hintText: 'مثال: لم يصل التحويل'),
         ),
         actions: [
           TextButton(
@@ -121,24 +118,18 @@ class _AdminHomeState extends State<AdminHome> {
       return;
     }
     try {
-      await sb.from('workers').update({
-        'verified': false,
-        'verification_status': 'rejected',
+      await sb.from('subscriptions').update({
+        'status': 'rejected',
         'reject_reason': reason,
-      }).eq('id', w['id'] as String);
+      }).eq('id', s['id'] as String);
       await load();
     } catch (_) {
       if (mounted) msg(context, 'تعذر الحفظ، حاول مرة أخرى');
     }
   }
 
-  Widget card(Map<String, dynamic> w) {
-    final p = (w['profiles'] ?? {}) as Map;
-    final job = ((w['professions'] ?? {}) as Map)['name'] ?? '';
-    final st = ((w['states'] ?? {}) as Map)['name'] ?? '';
-    final city = (w['city'] ?? '').toString();
-    final photo = w['photo_url'] as String?;
-    final doc = docTypes[w['id_doc_type']] ?? '';
+  Widget card(Map<String, dynamic> s) {
+    final p = people[s['worker_id']] ?? {};
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -149,58 +140,40 @@ class _AdminHomeState extends State<AdminHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white,
-                backgroundImage: photo == null ? null : NetworkImage(photo),
-                child: photo == null
-                    ? const Icon(Icons.person, color: Colors.black26)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${p['full_name'] ?? ''}',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text('$job',
-                        style: const TextStyle(
-                            color: kGreen, fontWeight: FontWeight.bold)),
-                    Text('$city، $st',
-                        style: const TextStyle(color: Colors.white60)),
-                    Text('${p['phone'] ?? ''}',
-                        textDirection: TextDirection.ltr,
-                        style: const TextStyle(color: Colors.white60)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('المستند: $doc',
-              style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: [
-              OutlinedButton(
-                  onPressed: () => showDoc(w),
-                  child: const Text('عرض المستند')),
-              if (status != 'approved')
+          Text('${p['full_name'] ?? ''}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text('${p['phone'] ?? ''}',
+              textDirection: TextDirection.ltr,
+              style: const TextStyle(color: Colors.white60)),
+          const SizedBox(height: 6),
+          Text('المبلغ: ${s['amount']} جنيه'),
+          Text('آخر 4 أرقام من الإشعار: ${s['notice_last4'] ?? ''}',
+              style: const TextStyle(
+                  color: kGreen, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text('تاريخ الإرسال: ${fmt(s['created_at'])}',
+              style: const TextStyle(color: Colors.white60)),
+          if (s['ends_at'] != null)
+            Text('ساري حتى: ${fmt(s['ends_at'])}',
+                style: const TextStyle(color: Colors.white60)),
+          if (s['status'] == 'rejected' &&
+              (s['reject_reason'] ?? '').toString().isNotEmpty)
+            Text('السبب: ${s['reject_reason']}',
+                style: const TextStyle(color: Colors.white60)),
+          if (status == 'pending') ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
                 FilledButton(
-                    onPressed: () => approve(w), child: const Text('قبول')),
-              if (status == 'pending')
+                    onPressed: () => confirm(s), child: const Text('تأكيد')),
                 OutlinedButton(
-                    onPressed: () => reject(w),
+                    onPressed: () => reject(s),
                     style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.redAccent),
                     child: const Text('رفض')),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -208,53 +181,48 @@ class _AdminHomeState extends State<AdminHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('لوحة الإدارة'),
-        backgroundColor: kBg,
-        actions: [
-          IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
-          IconButton(
-              onPressed: () => sb.auth.signOut(),
-              icon: const Icon(Icons.logout)),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final e in labels.entries)
-                  ChoiceChip(
-                    label: Text(e.value),
-                    selected: status == e.key,
-                    showCheckmark: false,
-                    selectedColor: kGreen,
-                    labelStyle: TextStyle(
-                        color: status == e.key ? kBg : Colors.white,
-                        fontWeight: FontWeight.bold),
-                    onSelected: (_) {
-                      status = e.key;
-                      load();
-                    },
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : items.isEmpty
-                    ? const Center(child: Text('لا توجد طلبات في هذه القائمة'))
-                    : ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        children: [for (final w in items) card(w)],
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final e in labels.entries)
+                      ChoiceChip(
+                        label: Text(e.value),
+                        selected: status == e.key,
+                        showCheckmark: false,
+                        selectedColor: kGreen,
+                        labelStyle: TextStyle(
+                            color: status == e.key ? kBg : Colors.white,
+                            fontWeight: FontWeight.bold),
+                        onSelected: (_) {
+                          status = e.key;
+                          load();
+                        },
                       ),
+                  ],
+                ),
+              ),
+              IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
+            ],
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: loading
+              ? const Center(child: CircularProgressIndicator())
+              : items.isEmpty
+                  ? const Center(child: Text('لا توجد إشعارات في هذه القائمة'))
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      children: [for (final s in items) card(s)],
+                    ),
+        ),
+      ],
     );
   }
 }
