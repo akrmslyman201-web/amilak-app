@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'admin.dart';
 import 'common.dart';
 import 'main.dart' show Home, kBg, kGreen;
 import 'signup.dart';
@@ -180,26 +181,6 @@ class _RoleRouterState extends State<RoleRouter> {
         if (role == 'admin') return const AdminHome();
         return const Home();
       },
-    );
-  }
-}
-
-class AdminHome extends StatelessWidget {
-  const AdminHome({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('لوحة الإدارة'),
-        backgroundColor: kBg,
-        actions: [
-          IconButton(
-              onPressed: () => sb.auth.signOut(),
-              icon: const Icon(Icons.logout)),
-        ],
-      ),
-      body: const Center(child: Text('شاشات الإدارة قادمة في الخطوة التالية')),
     );
   }
 }
