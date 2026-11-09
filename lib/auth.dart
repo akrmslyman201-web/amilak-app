@@ -7,6 +7,7 @@ import 'common.dart';
 import 'main.dart' show Home, kBg, kGreen;
 import 'signup.dart';
 import 'worker.dart';
+import 'welcome.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
