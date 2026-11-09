@@ -20,6 +20,8 @@ class _CustomerHomeState extends State<CustomerHome> {
   Map<String, List<String>> statesMap = {};
   Map<String, double> avg = {};
   Map<String, int> cnt = {};
+  Map<String, String> profNames = {};
+  Map<String, String> stateNames = {};
 
   String q = '';
   String prof = '';
@@ -29,8 +31,16 @@ class _CustomerHomeState extends State<CustomerHome> {
 
   String t(dynamic v) => v == null ? '' : v.toString();
   String wName(Map<String, dynamic> w) => t(w['full_name'] ?? w['name']);
-  String wProf(Map<String, dynamic> w) =>
-      t(w['profession'] ?? w['profession_name']);
+  String wProf(Map<String, dynamic> w) {
+    final n = t(w['profession'] ?? w['profession_name']);
+    return n.isNotEmpty ? n : (profNames[t(w['profession_id'])] ?? '');
+  }
+
+  String wState(Map<String, dynamic> w) {
+    final n = t(w['state']);
+    return n.isNotEmpty ? n : (stateNames[t(w['state_id'])] ?? '');
+  }
+
   String av(Map<String, dynamic> w) =>
       t(w['availability']).isEmpty ? 'available' : t(w['availability']);
 
@@ -56,10 +66,10 @@ class _CustomerHomeState extends State<CustomerHome> {
     }
     try {
       final ps = await sb.from('professions').select().eq('active', true);
-      professions = List<Map<String, dynamic>>.from(ps)
-          .map((e) => t(e['name']))
-          .where((e) => e.isNotEmpty)
-          .toList();
+      final pl = List<Map<String, dynamic>>.from(ps);
+      profNames = {for (final e in pl) t(e['id']): t(e['name'])};
+      professions =
+          pl.map((e) => t(e['name'])).where((e) => e.isNotEmpty).toList();
     } catch (_) {}
     try {
       final ss = await sb.from('states').select().eq('active', true);
@@ -80,6 +90,7 @@ class _CustomerHomeState extends State<CustomerHome> {
               .toList();
         }
         m[t(s['name'])] = list;
+        stateNames[t(s['id'])] = t(s['name']);
       }
       statesMap = m;
     } catch (_) {}
@@ -102,7 +113,7 @@ class _CustomerHomeState extends State<CustomerHome> {
     final list = workers.where((w) {
       if (onlyAvail && av(w) != 'available') return false;
       if (prof.isNotEmpty && wProf(w) != prof) return false;
-      if (state != null && t(w['state']) != state) return false;
+      if (state != null && wState(w) != state) return false;
       if (city != null && t(w['city']) != city) return false;
       final s = q.trim();
       if (s.isNotEmpty && !('${wName(w)} ${wProf(w)}').contains(s)) {
@@ -170,7 +181,7 @@ class _CustomerHomeState extends State<CustomerHome> {
   Widget card(Map<String, dynamic> w) {
     final id = t(w['id']);
     final photo = t(w['photo_url']);
-    final place = [t(w['state']), t(w['city'])]
+    final place = [wState(w), t(w['city'])]
         .where((e) => e.isNotEmpty)
         .join('، ');
     final phone = t(w['phone']);
