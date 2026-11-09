@@ -16,9 +16,10 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: sb.auth.onAuthStateChange,
       builder: (context, snap) {
-        if (sb.auth.currentSession == null) return const LoginPage();
-        return const RoleRouter();
-      },
+        if (sb.auth.currentSession == null)
+  return const WelcomePage();
+return const RoleRouter();
+},
     );
   }
 }
