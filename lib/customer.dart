@@ -61,6 +61,11 @@ class _CustomerHomeState extends State<CustomerHome> {
           .select()
           .eq('verification_status', 'approved');
       workers = List<Map<String, dynamic>>.from(ws);
+            try {
+        final vis = await sb.rpc('visible_worker_ids');
+        final ids = List<dynamic>.from(vis).map((e) => e.toString()).toSet();
+        workers = workers.where((w) => ids.contains(t(w['id']))).toList();
+      } catch (_) {}
     } catch (_) {
       error = 'تعذر تحميل الحرفيين، تأكد من الإنترنت';
     }
