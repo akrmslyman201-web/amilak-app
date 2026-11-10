@@ -8,6 +8,7 @@ import 'main.dart' show Home, kBg, kGreen;
 import 'signup.dart';
 import 'worker.dart';
 import 'welcome.dart';
+import 'shell.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -180,9 +181,9 @@ class _RoleRouterState extends State<RoleRouter> {
         }
         final role = s.data!['role'];
         final name = (s.data!['full_name'] ?? '').toString();
-        if (role == 'worker') return WorkerHome(name: name);
+        if (role == 'worker') return WorkerShell(name: name);
         if (role == 'admin') return const AdminHome();
-            return CustomerHome(name: name);
+            return CustomerShell(name: name);
   },
 );
   }
