@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'admin.dart';
-import 'customer.dart';
 import 'common.dart';
+import 'forgot_password.dart';
 import 'main.dart' show Home, kBg, kGreen;
-import 'signup.dart';
-import 'worker.dart';
-import 'welcome.dart';
+import 'pw_field.dart';
 import 'shell.dart';
+import 'signup.dart';
+import 'welcome.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -18,10 +18,9 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: sb.auth.onAuthStateChange,
       builder: (context, snap) {
-        if (sb.auth.currentSession == null)
-  return const WelcomePage();
-return const RoleRouter();
-},
+        if (sb.auth.currentSession == null) return const WelcomePage();
+        return const RoleRouter();
+      },
     );
   }
 }
@@ -91,8 +90,17 @@ class _LoginPageState extends State<LoginPage> {
                 icon: Icons.email_outlined,
                 ltr: true,
                 type: TextInputType.emailAddress),
-            tf(passC, 'كلمة المرور',
-                icon: Icons.lock_outline, obscure: true, ltr: true),
+            PasswordField(controller: passC),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordPage())),
+                child: const Text('نسيت كلمة المرور؟'),
+              ),
+            ),
             FilledButton(
               onPressed: busy ? null : login,
               style: FilledButton.styleFrom(
@@ -183,8 +191,8 @@ class _RoleRouterState extends State<RoleRouter> {
         final name = (s.data!['full_name'] ?? '').toString();
         if (role == 'worker') return WorkerShell(name: name);
         if (role == 'admin') return const AdminHome();
-            return CustomerShell(name: name);
-  },
-);
+        return CustomerShell(name: name);
+      },
+    );
   }
 }
