@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'become_worker.dart';
 import 'customer.dart';
 import 'main.dart' show kBg;
+import 'sub_banner.dart';
 import 'worker.dart';
 
 class WorkerShell extends StatefulWidget {
@@ -19,11 +20,18 @@ class _WorkerShellState extends State<WorkerShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: tab,
+      body: Column(
         children: [
-          WorkerHome(name: widget.name),
-          CustomerHome(name: widget.name),
+          Expanded(
+            child: IndexedStack(
+              index: tab,
+              children: [
+                WorkerHome(name: widget.name),
+                CustomerHome(name: widget.name),
+              ],
+            ),
+          ),
+          SubBanner(onRenew: () => setState(() => tab = 0)),
         ],
       ),
       bottomNavigationBar: NavigationBar(
