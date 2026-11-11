@@ -45,10 +45,20 @@ class _VerifyTabState extends State<VerifyTab> {
       if (ids.isNotEmpty) {
         final p = await sb
             .from('profiles')
-            .select('id, full_name, phone')
+            .select('id, full_name')
             .inFilter('id', ids);
         for (final x in p) {
           people[x['id'] as String] = Map<String, dynamic>.from(x);
+        }
+        final c = await sb
+            .from('worker_contacts')
+            .select('worker_id, phone')
+            .inFilter('worker_id', ids);
+        for (final x in c) {
+          people[x['worker_id'] as String] = {
+            ...?people[x['worker_id'] as String],
+            'phone': x['phone'],
+          };
         }
       }
       final pj = await sb.from('professions').select('id, name');
