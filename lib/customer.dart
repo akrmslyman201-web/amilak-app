@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'common.dart';
 import 'main.dart' show kBg, kCard;
+import 'request_page.dart';
 
 class CustomerHome extends StatefulWidget {
   final String name;
@@ -189,8 +190,21 @@ class _CustomerHomeState extends State<CustomerHome> {
     final place = [wState(w), t(w['city'])]
         .where((e) => e.isNotEmpty)
         .join('، ');
-    final phone = t(w['phone']);
-    final wa = t(w['whatsapp']).isEmpty ? phone : t(w['whatsapp']);
+    FilledButton.icon(
+  onPressed: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => RequestPage(
+        workerId: id,
+        name: wName(w),
+        job: wProf(w),
+        place: place,
+      ),
+    ),
+  ),
+  icon: const Icon(Icons.send_outlined),
+  label: const Text('اطلب الخدمة'),
+),
     final bio = t(w['bio']);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
