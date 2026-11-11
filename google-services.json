@@ -1,0 +1,29 @@
+{
+  "معلومات_المشروع": {
+    "رقم_المشروع": "510515121028"
+    "project_id": "amilak-alayna",
+    "storage_bucket": "amilak-alayna.firebasestorage.app"
+  },
+  "عميل": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:510515121028:android:9f16dca5d16c97a40b2bd1",
+        "android_client_info": {
+          "package_name": "com.amilak.amilak_alayna"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEwukMkc4l_yMk9XgX8bl6BI2TJoyk3AQ"
+        }
+      ],
+      "خدمات": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
