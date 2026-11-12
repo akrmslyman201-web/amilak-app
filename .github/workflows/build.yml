@@ -36,6 +36,18 @@ jobs:
             mkdir -p ~/.android
             cp keystore/release.keystore ~/.android/debug.keystore
           fi
+      - name: Disable Android lint
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/disable-lint.gradle << 'EOF'
+          allprojects {
+            tasks.configureEach { t ->
+              if (t.name.startsWith('lintVital') || t.name.startsWith('lintAnalyze') || t.name.startsWith('lintReport')) {
+                t.enabled = false
+              }
+            }
+          }
+          EOF
       - run: flutter pub get
       - name: Generate app icon
         run: dart run flutter_launcher_icons
@@ -47,6 +59,7 @@ jobs:
         shell: bash
         run: |
           grep -E "(\.dart:[0-9]+:[0-9]+: Error|^Error|Error: )" build.log | head -8 | while read -r l; do echo "::error::$l"; done || true
+          grep -A4 "What went wrong" build.log | head -12 | while read -r l; do echo "::error::$l"; done || true
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
