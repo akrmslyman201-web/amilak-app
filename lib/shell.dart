@@ -5,6 +5,7 @@ import 'customer.dart';
 import 'main.dart' show kBg;
 import 'sub_banner.dart';
 import 'worker.dart';
+import 'worker_location.dart';
 import 'worker_requests.dart';
 
 class WorkerShell extends StatefulWidget {
@@ -30,6 +31,7 @@ class _WorkerShellState extends State<WorkerShell> {
                 WorkerHome(name: widget.name),
                 CustomerHome(name: widget.name),
                 const WorkerRequestsTab(),
+                const WorkerLocationTab(),
               ],
             ),
           ),
@@ -46,6 +48,8 @@ class _WorkerShellState extends State<WorkerShell> {
           NavigationDestination(icon: Icon(Icons.search), label: 'تصفح كعميل'),
           NavigationDestination(
               icon: Icon(Icons.inbox_outlined), label: 'الطلبات'),
+          NavigationDestination(
+              icon: Icon(Icons.my_location_outlined), label: 'موقعي'),
         ],
       ),
     );
